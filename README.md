@@ -17,7 +17,7 @@ The implementation is centered around the final evaluation scenario and demonstr
 
 ### Live Demonstration
 
-**Hosted App:** [YOUR VERCEL URL]  
+**Hosted App:** [https://ai-agent-workflow-builder-rust-ten.vercel.app/](https://ai-agent-workflow-builder-rust-ten.vercel.app/)  
 **Walkthrough:** [YOUR VIDEO URL]  
 
 The walkthrough demonstrates:
