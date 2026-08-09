@@ -1,0 +1,8 @@
+- `[x]` Install @dnd-kit dependencies
+- `[x]` Update `WorkflowBuilder.tsx` with drag-and-drop context
+- `[x]` Create `SortableStep` component
+- `[x]` Add edit/read-only toggle state
+- `[x]` Add step toolbox (add/remove steps)
+- `[x]` Add raw JSON config editor for steps
+- `[x]` Wire up Save Workflow mutation
+- `[x]` Test locally and create walkthrough

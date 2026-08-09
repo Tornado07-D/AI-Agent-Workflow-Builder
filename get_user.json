@@ -1,0 +1,1 @@
+{"query":"query { users(where: {email: {_eq: \"ownera@orga.com\"}}) { id } }"}

@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@nhost/nhost-js": "^4.8.0",
+    "node-fetch": "^3.3.2"
+  }
+}

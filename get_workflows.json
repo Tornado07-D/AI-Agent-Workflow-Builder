@@ -1,0 +1,1 @@
+{"query":"query { organizations { id name workflows { id name } } }"}
