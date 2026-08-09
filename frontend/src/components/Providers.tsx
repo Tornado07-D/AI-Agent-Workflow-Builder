@@ -59,6 +59,12 @@ function OrgProviderWrapper({ children }: { children: React.ReactNode }) {
   }, [data, user]);
 
   useEffect(() => {
+    if (!user) {
+      setCurrentOrg(null);
+    }
+  }, [user]);
+
+  useEffect(() => {
     if (myOrgs.length > 0 && !currentOrg) {
       const member = myOrgs[0];
       setCurrentOrg({
