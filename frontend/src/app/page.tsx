@@ -68,7 +68,7 @@ function LoginForm() {
               className="w-full bg-slate-950 border border-slate-800 rounded-md p-2.5 text-sm text-slate-200 placeholder-slate-500 focus:border-slate-500 focus:ring-1 focus:ring-slate-500 outline-none transition-colors"
             />
           </div>
-          <button disabled={isLoading} className="w-full mt-2 bg-white hover:bg-slate-200 text-slate-900 font-medium text-sm rounded-md p-2.5 transition-colors">
+          <button disabled={isLoading} className="w-full mt-2 bg-white hover:bg-slate-200 active:bg-slate-300 active:scale-95 text-slate-900 font-medium text-sm rounded-md p-2.5 transition-all transform">
             {isLoading ? 'Signing in...' : 'Continue'}
           </button>
         </form>

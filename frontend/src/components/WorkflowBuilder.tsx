@@ -240,7 +240,7 @@ export function WorkflowBuilder({ org }: { org: any }) {
                         <Save size={16} /> Save Changes
                       </button>
                     )}
-                    <button onClick={handleRun} disabled={isEditing} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-colors ${isEditing ? 'bg-slate-900 cursor-not-allowed text-slate-500 border border-slate-800' : 'bg-white hover:bg-slate-200 text-slate-900'}`}>
+                    <button onClick={handleRun} disabled={isEditing} className={`flex items-center gap-2 px-4 py-2 rounded-md text-sm font-medium transition-all transform active:scale-95 ${isEditing ? 'bg-slate-900 cursor-not-allowed text-slate-500 border border-slate-800' : 'bg-white hover:bg-slate-200 active:bg-slate-300 text-slate-900'}`}>
                       <Play size={16} /> Run Now
                     </button>
                   </>
