@@ -74,10 +74,10 @@ function LoginForm() {
         </form>
         
         <div className="mt-8 pt-6 border-t border-slate-800 text-center">
-          <p className="text-xs text-slate-500">Demo Accounts:</p>
-          <div className="flex justify-center gap-3 mt-3">
-            <span className="text-xs bg-slate-950 px-2.5 py-1 rounded-md text-slate-400 border border-slate-800">ownerA@orga.com</span>
-            <span className="text-xs bg-slate-950 px-2.5 py-1 rounded-md text-slate-400 border border-slate-800">viewerA@orga.com</span>
+          <p className="text-xs text-slate-500 mb-3">Demo Accounts (Password: <span className="font-mono text-slate-300">password123</span>)</p>
+          <div className="flex justify-center gap-3">
+            <span className="text-xs bg-slate-950 px-2.5 py-1.5 rounded-md text-slate-400 border border-slate-800 font-medium">ownerA@orga.com</span>
+            <span className="text-xs bg-slate-950 px-2.5 py-1.5 rounded-md text-slate-400 border border-slate-800 font-medium">viewerA@orga.com</span>
           </div>
         </div>
       </div>
