@@ -8,15 +8,26 @@ Next.js · TypeScript · Nhost · Hasura GraphQL · PostgreSQL · Node.js
 
 ## Final Task — End-to-End Demonstration
 
-This implementation was engineered specifically to pass the final evaluation scenario.
+The implementation is centered around the final evaluation scenario and demonstrates the required security, execution, and real-time behavior end to end.
 
-### Workflow
-`LLM Call` → `HTTP Request` → `Conditional Branch` → `Approval Gate`
+### Live Demonstration
+
+**Hosted App:** [YOUR VERCEL URL]  
+**Walkthrough:** [YOUR VIDEO URL]  
+
+The walkthrough demonstrates:
+- Org A creating and executing a workflow
+- LLM → HTTP → conditional execution
+- Approval gate pausing execution
+- Real-time subscription updates without refresh
+- Authorized approval and execution resumption
+- Webhook-triggered execution
+- Org B attempting to access Org A resources and being denied
 
 ### Execution Mapping
 1. **Org A owner creates the workflow.**
 2. **Workflow starts manually** through GraphQL.
-3. **LLM step executes** against an LLM API (stubbed with artificial delay).
+3. **LLM step executes** against an LLM API (stubbed with artificial delay as permitted).
 4. **HTTP step calls an external API** (`httpbin.org`).
 5. **Conditional branch evaluates** the LLM output.
 6. **Approval gate pauses execution.**
@@ -30,15 +41,45 @@ This implementation was engineered specifically to pass the final evaluation sce
 
 ## Key Engineering Highlights
 
-### 1. Multi-Tenant Isolation (Layer 1)
+### 1. Multi-Tenant Isolation
 PostgreSQL Row-Level Security scopes all organization-owned data through the `org_members` table. A user in Org B is mathematically prevented from querying Org A's workflows.
 
-### 2. Two-Layer Authorization (Layer 2)
-* **Layer 1 (Data Access):** Hasura/PostgreSQL RLS prevents cross-organization reads and writes.
-* **Layer 2 (Execution Authorization):** Serverless Action handlers independently verify organization membership and role before sensitive execution operations (e.g., verifying if a user is an `owner` or `editor` before resuming a paused workflow).
+### 2. Two-Layer Authorization
+
+**Layer 1 — Data Access**  
+Hasura/PostgreSQL RLS prevents cross-organization reads and writes.
+
+**Layer 2 — Execution Authorization**  
+Serverless Action handlers independently verify organization membership and role before sensitive execution operations (e.g., verifying if a user is an `owner` or `editor` before resuming a paused workflow).
 
 ### 3. Stateless Pause / Resume
 The serverless execution does not keep an in-memory process alive while waiting for approval. Execution state is persisted to PostgreSQL, allowing the function to gracefully terminate and resume later from the exact persisted state.
+
+### 4. Fault Tolerance
+External `llm_call` and `http_request` steps use retry handling for transient failures. Failed steps persist their error state and attempt count without corrupting the overall workflow state.
+
+### 5. Organization Quotas
+Each organization maintains usage limits for the current period. Workflow execution verifies available quota before starting and updates usage after successful execution.
+
+---
+
+## Assignment Coverage
+
+| Requirement | Implementation |
+| ----------- | -------------- |
+| Multi-tenancy | PostgreSQL RLS + `org_members` |
+| Owner / Editor / Viewer | Role-based Hasura permissions |
+| LLM step | `llm_call` node |
+| HTTP step | `http_request` node |
+| Conditional execution | `conditional_branch` node |
+| Approval | `approval_gate` + Action authorization |
+| Manual trigger | GraphQL mutation |
+| External trigger | Hasura webhook Action |
+| Live execution | GraphQL subscriptions |
+| Pause / Resume | Persisted PostgreSQL execution state |
+| Retry handling | Step-level retry / attempt tracking |
+| Quota | Organization usage tracking |
+| Cross-org isolation | RLS + organization-scoped permissions |
 
 ---
 
