@@ -122,3 +122,12 @@ curl -X POST http://localhost:1337/v1/functions/webhookTrigger \
   -H "Content-Type: application/json" \
   -d '{"workflow_id": "YOUR_WORKFLOW_ID", "token": "secret-token-123"}'
 ```
+
+## Design Decisions
+
+- **Stateless Execution Engine**: The execution engine intentionally terminates at `approval_gate` steps. It does not hold memory or idle connections. It fully serializes the state to Postgres, and a separate mutation resumes it from a cold start.
+- **Two-Layer Security**: 
+  - *Layer 1 (Data)*: Hasura Row Level Security (RLS) ensures users can never query data outside their organization. 
+  - *Layer 2 (Execution)*: Serverless Action handlers re-verify caller roles against the database before executing mutations, guaranteeing that an editor cannot bypass an approval gate.
+- **JSONB Configuration**: Step configurations are stored as JSONB to allow dynamic evolution of new step types without requiring heavy schema migrations.
+- **Premium Flat UI**: The frontend utilizes a stark, flat dark mode inspired by tools like Vercel and Linear, emphasizing clarity and professionalism over generic styling.
