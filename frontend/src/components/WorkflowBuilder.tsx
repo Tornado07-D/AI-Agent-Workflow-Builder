@@ -77,15 +77,17 @@ export function WorkflowBuilder({ org }: { org: any }) {
   const organization = data?.organizations_by_pk;
   const workflows = organization?.workflows || [];
   
-  const [selectedWf, setSelectedWf] = useState<any>(null);
+  const [selectedWfId, setSelectedWfId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingSteps, setEditingSteps] = useState<any[]>([]);
   
+  const selectedWf = workflows.find((w: any) => w.id === selectedWfId) || null;
+
   useEffect(() => {
-    if (workflows.length > 0 && !selectedWf) {
-      setSelectedWf(workflows[0]);
+    if (workflows.length > 0 && !selectedWfId) {
+      setSelectedWfId(workflows[0].id);
     }
-  }, [workflows, selectedWf]);
+  }, [workflows, selectedWfId]);
 
   useEffect(() => {
     if (selectedWf && !isEditing) {
@@ -193,7 +195,7 @@ export function WorkflowBuilder({ org }: { org: any }) {
           {workflows.map((wf: any) => (
             <div 
               key={wf.id} 
-              onClick={() => { setSelectedWf(wf); setIsEditing(false); }}
+              onClick={() => { setSelectedWfId(wf.id); setIsEditing(false); }}
               className={`p-4 rounded-md cursor-pointer border transition-colors ${selectedWf?.id === wf.id ? 'bg-slate-900 border-slate-700' : 'bg-slate-950 border-slate-800 hover:border-slate-700 hover:bg-slate-900'}`}
             >
               <div className="font-semibold">{wf.name}</div>
