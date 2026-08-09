@@ -16,9 +16,9 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
     throw new Error("Quota exceeded");
   }
 
-  const apiKey = process.env.GROQ_API_KEY;
+  const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.log("No GROQ_API_KEY found. Falling back to a deterministic local stub.");
+    console.log("No GEMINI_API_KEY found. Falling back to a deterministic local stub.");
     await new Promise(r => setTimeout(r, 1500));
     return {
       response: "Stub LLM response for: " + (config.prompt || "Hello"),
@@ -27,7 +27,7 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
     };
   }
 
-  // Real Groq call with retry, timeout, and durable attempt accounting.
+  // Real Gemini call with retry, timeout, and durable attempt accounting.
   let attempt = 0;
   while(attempt < 3) {
     try {
@@ -40,28 +40,35 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
 
       const controller = new AbortController();
       const timeout = setTimeout(() => controller.abort(), 20_000);
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      
+      const promptText = (config.prompt || 'Hello') + 
+                         '\n\nIf asked for a score or structured output, return ONLY valid JSON without any markdown formatting.';
+
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${apiKey}`
+          "Content-Type": "application/json"
         },
         body: JSON.stringify({
-          model: config.model || 'llama-3.1-8b-instant',
-          messages: [{ role: 'user', content: config.prompt || 'Hello' }],
-          temperature: 0.2
+          contents: [{ parts: [{ text: promptText }] }],
+          generationConfig: { temperature: 0.2 }
         }),
         signal: controller.signal
       });
+      
       clearTimeout(timeout);
-      if (!res.ok) throw new Error("Groq API error: " + res.status);
+      if (!res.ok) throw new Error("Gemini API error: " + res.status);
+      
       const data = await res.json();
-      const text = data.choices?.[0]?.message?.content || "";
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+      
+      // Attempt to extract JSON from the text response
       const jsonMatch = text.match(/\{[\s\S]*\}/);
       let structuredOutput = {};
       if (jsonMatch) {
         try { structuredOutput = JSON.parse(jsonMatch[0]); } catch { /* retain text-only output */ }
       }
+      
       return { response: text, ...structuredOutput };
     } catch(err) {
       if (attempt >= 3) throw err;
