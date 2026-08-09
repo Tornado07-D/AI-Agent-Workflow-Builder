@@ -32,7 +32,7 @@ const SAVE_WORKFLOW = gql`
   ) {
     insert_workflows_one(
       object: { id: $workflow_id, org_id: $org_id, name: $name, description: $description },
-      on_conflict: { constraint: workflows_pkey, update_columns: [name, description, updated_at] }
+      on_conflict: { constraint: workflows_pkey, update_columns: [name, description] }
     ) { id }
     delete_workflow_steps(where: { workflow_id: { _eq: $workflow_id } }) { affected_rows }
     insert_workflow_steps(objects: $steps) { affected_rows }
