@@ -7,15 +7,25 @@ import { WorkflowBuilder } from '../components/WorkflowBuilder';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuthenticationStatus();
-  const [mounted, setMounted] = useState(false);
+  const [isReady, setIsReady] = useState(false);
+  const [authResolved, setAuthResolved] = useState(false);
 
   useEffect(() => {
-    setMounted(true);
+    // Force wait for Nhost to fully resolve local storage auth before deciding to show login
+    import('../lib/nhost').then(({ nhost }) => {
+      nhost.auth.isAuthenticatedAsync().then((isAuth) => {
+        setAuthResolved(isAuth);
+        setIsReady(true);
+      }).catch(() => {
+        setIsReady(true);
+      });
+    });
   }, []);
   
-  if (!mounted || isLoading) return <div className="p-8 text-center">Loading auth...</div>;
+  // Wait until both React is mounted AND Nhost has explicitly resolved its async auth check
+  if (!isReady || isLoading) return <div className="p-8 text-center text-slate-400">Loading auth state...</div>;
   
-  if (!isAuthenticated) return <LoginForm />;
+  if (!isAuthenticated && !authResolved) return <LoginForm />;
   
   return <Dashboard />;
 }
