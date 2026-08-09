@@ -32,7 +32,7 @@ The walkthrough demonstrates:
 ### Execution Mapping
 1. **Org A owner creates the workflow.**
 2. **Workflow starts manually** through GraphQL.
-3. **LLM step executes** against an LLM API (stubbed with artificial delay as permitted).
+3. **LLM step executes** against the Gemini API using a secure server-side integration.
 4. **HTTP step calls an external API** (`httpbin.org`).
 5. **Conditional branch evaluates** the LLM output.
 6. **Approval gate pauses execution.**
