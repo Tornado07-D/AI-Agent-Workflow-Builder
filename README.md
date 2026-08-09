@@ -44,6 +44,18 @@ The walkthrough demonstrates:
 
 ---
 
+## Assignment Checklist
+
+- [x] **Multi-tenant architecture** (Isolated Postgres Organizations)
+- [x] **2-Layer Permissions** (DB Row-Level Security + Execution Action Checks)
+- [x] **Live Subscriptions** (GraphQL real-time status UI)
+- [x] **Stateless Pause/Resume** (Execution memory yielded during Approval Gates)
+- [x] **Manual & Webhook Triggers** (Dual initiation flows)
+- [x] **Retry & Quota Limits** (Fault tolerance and usage ceilings built-in)
+- [x] **Schema Design Write-up** (Detailed below)
+
+---
+
 ## Key Engineering Highlights
 
 ### 1. Schema Design
