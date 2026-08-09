@@ -1,8 +1,13 @@
 # AI Agent Workflow Builder
 
-A full-stack mini-n8n for building and executing multi-step AI workflows with multi-tenant isolation, role-based authorization, approval gates, and real-time execution streaming.
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.x-blue?logo=typescript&logoColor=white)](#)
+[![Next.js](https://img.shields.io/badge/Next.js-14-black?logo=next.js&logoColor=white)](#)
+[![Nhost](https://img.shields.io/badge/Nhost-BaaS-orange)](#)
+[![Hasura](https://img.shields.io/badge/Hasura-GraphQL-1EB4D4?logo=hasura&logoColor=white)](#)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-14+-316192?logo=postgresql&logoColor=white)](#)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](#)
 
-Next.js · TypeScript · Nhost · Hasura GraphQL · PostgreSQL · Node.js
+A full-stack mini-n8n for building and executing multi-step AI workflows with multi-tenant isolation, role-based authorization, approval gates, and real-time execution streaming.
 
 [Live Demo](#) · [Video Walkthrough](#) · [Architecture Details](ARCHITECTURE.md)
 
@@ -41,10 +46,13 @@ The walkthrough demonstrates:
 
 ## Key Engineering Highlights
 
-### 1. Multi-Tenant Isolation
+### 1. Schema Design
+The schema strictly separates organization membership, workflow definitions, and execution state. The `organizations` table owns workflows, while `org_members` maps users to organizations and roles. Each execution creates a `workflow_run` with one `step_run` per step, allowing individual status, input/output, errors, retry attempts, and approval metadata to be persisted independently. This separation is what allows execution to pause and resume without retaining server-side process state.
+
+### 2. Multi-Tenant Isolation
 PostgreSQL Row-Level Security scopes all organization-owned data through the `org_members` table. A user in Org B is mathematically prevented from querying Org A's workflows.
 
-### 2. Two-Layer Authorization
+### 3. Two-Layer Authorization
 
 **Layer 1 — Data Access**  
 Hasura/PostgreSQL RLS prevents cross-organization reads and writes.
@@ -52,34 +60,14 @@ Hasura/PostgreSQL RLS prevents cross-organization reads and writes.
 **Layer 2 — Execution Authorization**  
 Serverless Action handlers independently verify organization membership and role before sensitive execution operations (e.g., verifying if a user is an `owner` or `editor` before resuming a paused workflow).
 
-### 3. Stateless Pause / Resume
+### 4. Stateless Pause / Resume
 The serverless execution does not keep an in-memory process alive while waiting for approval. Execution state is persisted to PostgreSQL, allowing the function to gracefully terminate and resume later from the exact persisted state.
 
-### 4. Fault Tolerance
+### 5. Fault Tolerance
 External `llm_call` and `http_request` steps use retry handling for transient failures. Failed steps persist their error state and attempt count without corrupting the overall workflow state.
 
-### 5. Organization Quotas
+### 6. Organization Quotas
 Each organization maintains usage limits for the current period. Workflow execution verifies available quota before starting and updates usage after successful execution.
-
----
-
-## Assignment Coverage
-
-| Requirement | Implementation |
-| ----------- | -------------- |
-| Multi-tenancy | PostgreSQL RLS + `org_members` |
-| Owner / Editor / Viewer | Role-based Hasura permissions |
-| LLM step | `llm_call` node |
-| HTTP step | `http_request` node |
-| Conditional execution | `conditional_branch` node |
-| Approval | `approval_gate` + Action authorization |
-| Manual trigger | GraphQL mutation |
-| External trigger | Hasura webhook Action |
-| Live execution | GraphQL subscriptions |
-| Pause / Resume | Persisted PostgreSQL execution state |
-| Retry handling | Step-level retry / attempt tracking |
-| Quota | Organization usage tracking |
-| Cross-org isolation | RLS + organization-scoped permissions |
 
 ---
 
@@ -163,12 +151,3 @@ curl -X POST http://localhost:1337/v1/functions/webhookTrigger \
   -H "Content-Type: application/json" \
   -d '{"workflow_id": "YOUR_WORKFLOW_ID", "token": "secret-token-123"}'
 ```
-
-## Design Decisions
-
-- **Stateless Execution Engine**: The execution engine intentionally terminates at `approval_gate` steps. It does not hold memory or idle connections. It fully serializes the state to Postgres, and a separate mutation resumes it from a cold start.
-- **Two-Layer Security**: 
-  - *Layer 1 (Data)*: Hasura Row Level Security (RLS) ensures users can never query data outside their organization. 
-  - *Layer 2 (Execution)*: Serverless Action handlers re-verify caller roles against the database before executing mutations, guaranteeing that an editor cannot bypass an approval gate.
-- **JSONB Configuration**: Step configurations are stored as JSONB to allow dynamic evolution of new step types without requiring heavy schema migrations.
-- **Premium Flat UI**: The frontend utilizes a stark, flat dark mode inspired by tools like Vercel and Linear, emphasizing clarity and professionalism over generic styling.
