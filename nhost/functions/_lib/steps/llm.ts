@@ -33,13 +33,13 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
   `, { id: stepRun.id });
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 8_000); // 8s to beat Nhost's 10s kill switch
+  const timeout = setTimeout(() => controller.abort(), 4_000); // 4s timeout to guarantee enough time for DB write before 10s kill switch
   
   const promptText = (config.prompt || 'Hello') + 
                      '\n\nIf asked for a score or structured output, return ONLY valid JSON without any markdown formatting.';
 
   try {
-    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`, {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
