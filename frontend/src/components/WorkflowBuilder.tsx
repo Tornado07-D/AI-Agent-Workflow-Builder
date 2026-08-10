@@ -41,6 +41,12 @@ const SAVE_WORKFLOW = gql`
   }
 `;
 
+const CREATE_WORKFLOW = gql`
+  mutation CreateWorkflow($org_id: uuid!, $name: String!) {
+    insert_workflows_one(object: { org_id: $org_id, name: $name }) { id }
+  }
+`;
+
 const TRIGGER_RUN = gql`
   mutation TriggerRun($workflow_id: uuid!) {
     triggerWorkflowRun(workflow_id: $workflow_id) { run_id }
@@ -72,6 +78,7 @@ export function WorkflowBuilder({ org }: { org: any }) {
     errorPolicy: 'ignore' // Prevents unhandled promise rejections on Apollo store resets
   });
   const [saveWf] = useMutation(SAVE_WORKFLOW);
+  const [createWf] = useMutation(CREATE_WORKFLOW);
   const [triggerRun] = useMutation(TRIGGER_RUN);
   
   const organization = data?.organizations_by_pk;
@@ -202,7 +209,19 @@ export function WorkflowBuilder({ org }: { org: any }) {
   };
 
   if (loading) return <div>Loading workflows...</div>;
-  if (workflows.length === 0) return <div>No workflows found in this org.</div>;
+
+  const handleCreateNew = async () => {
+    const name = prompt("Enter workflow name:", "New Workflow");
+    if (!name) return;
+    try {
+      const res = await createWf({ variables: { org_id: org.id, name } });
+      await refetch();
+      setSelectedWfId(res.data.insert_workflows_one.id);
+      setIsEditing(true);
+    } catch (e: any) {
+      alert("Error creating workflow: " + e.message);
+    }
+  };
 
   const runInfo = selectedWf?.runs?.[0];
 
@@ -218,8 +237,18 @@ export function WorkflowBuilder({ org }: { org: any }) {
   return (
     <div className="grid grid-cols-3 gap-6 h-full">
       <div className="col-span-1 bg-slate-950 rounded-lg p-5 border border-slate-800 overflow-auto">
-        <h2 className="text-xl font-bold mb-4">Workflows</h2>
-        <div className="space-y-2">
+        <div className="flex justify-between items-center mb-4">
+          <h2 className="text-xl font-bold">Workflows</h2>
+          {org.role !== 'viewer' && (
+            <button onClick={handleCreateNew} className="flex items-center gap-1 bg-cyan-600 hover:bg-cyan-500 px-3 py-1.5 rounded text-white text-xs font-semibold transition-colors">
+              <Plus size={14} /> New
+            </button>
+          )}
+        </div>
+        {workflows.length === 0 ? (
+          <div className="text-sm text-slate-500 italic mb-4">No workflows found.</div>
+        ) : (
+          <div className="space-y-2">
           {workflows.map((wf: any) => (
             <div 
               key={wf.id} 
@@ -231,6 +260,7 @@ export function WorkflowBuilder({ org }: { org: any }) {
             </div>
           ))}
         </div>
+        )}
         
         <div className="mt-8 p-4 bg-slate-900 rounded border border-slate-700">
           <h3 className="text-sm font-semibold mb-2">Usage This Month</h3>
