@@ -1,0 +1,69 @@
+table:
+  name: app_data
+  schema: public
+object_relationships:
+  - name: organization
+    using:
+      foreign_key_constraint_on: org_id
+insert_permissions:
+  - role: owner
+    permission:
+      check:
+        organization:
+          members:
+            user_id:
+              _eq: X-Hasura-User-Id
+select_permissions:
+  - role: owner
+    permission:
+      columns:
+        - id
+        - org_id
+        - workflow_run_id
+        - data
+        - created_at
+      filter:
+        organization:
+          members:
+            user_id:
+              _eq: X-Hasura-User-Id
+  - role: editor
+    permission:
+      columns:
+        - id
+        - org_id
+        - workflow_run_id
+        - data
+        - created_at
+      filter:
+        organization:
+          members:
+            user_id:
+              _eq: X-Hasura-User-Id
+  - role: viewer
+    permission:
+      columns:
+        - id
+        - org_id
+        - workflow_run_id
+        - data
+        - created_at
+      filter:
+        organization:
+          members:
+            user_id:
+              _eq: X-Hasura-User-Id
+event_triggers:
+  - name: app_data_inserted
+    definition:
+      enable_manual: false
+      insert:
+        columns: "*"
+    retry_conf:
+      interval_sec: 10
+      num_retries: 0
+      timeout_sec: 60
+    webhook: "{{NHOST_BACKEND_URL}}/v1/functions/eventTrigger"
+    headers:
+      - name: nhost-webhook-secret
+        value_from_env: NHOST_WEBHOOK_SECRET

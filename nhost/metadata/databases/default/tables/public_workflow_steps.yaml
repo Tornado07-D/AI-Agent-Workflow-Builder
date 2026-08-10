@@ -9,16 +9,31 @@ insert_permissions:
   - role: user
     permission:
       check:
-        workflow:
-          org:
-            members:
-              _and:
-                - user_id:
-                    _eq: X-Hasura-User-Id
-                - role:
-                    _in:
-                      - owner
-                      - editor
+        _or:
+          - _and:
+              - type:
+                  _in: ["db_write", "notify"]
+              - workflow:
+                  org:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _eq: owner
+          - _and:
+              - type:
+                  _nin: ["db_write", "notify"]
+              - workflow:
+                  org:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _in:
+                              - owner
+                              - editor
 select_permissions:
   - role: user
     permission:
@@ -43,28 +58,58 @@ update_permissions:
         - type
         - config
       filter:
-        workflow:
-          org:
-            members:
-              _and:
-                - user_id:
-                    _eq: X-Hasura-User-Id
-                - role:
-                    _in:
-                      - owner
-                      - editor
+        _or:
+          - _and:
+              - type:
+                  _in: ["db_write", "notify"]
+              - workflow:
+                  org:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _eq: owner
+          - _and:
+              - type:
+                  _nin: ["db_write", "notify"]
+              - workflow:
+                  org:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _in:
+                              - owner
+                              - editor
       check: null
 delete_permissions:
   - role: user
     permission:
       filter:
-        workflow:
-          org:
-            members:
-              _and:
-                - user_id:
-                    _eq: X-Hasura-User-Id
-                - role:
-                    _in:
-                      - owner
-                      - editor
+        _or:
+          - _and:
+              - type:
+                  _in: ["db_write", "notify"]
+              - workflow:
+                  org:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _eq: owner
+          - _and:
+              - type:
+                  _nin: ["db_write", "notify"]
+              - workflow:
+                  org:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _in:
+                              - owner
+                              - editor

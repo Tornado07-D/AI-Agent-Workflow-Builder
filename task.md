@@ -1,0 +1,10 @@
+- [ ] Create `app_data` and `notifications` tables in PostgreSQL (Migration)
+- [ ] Track new tables and relationships in Hasura Metadata
+- [ ] Create Event Trigger for `notifications` (Slack/Email)
+- [ ] Create Database Event Trigger for `app_data`
+- [ ] Create Scheduled (Cron) Trigger in Hasura
+- [ ] Implement `eventNotify.ts` serverless function
+- [ ] Implement `eventTrigger.ts` serverless function
+- [ ] Implement `cronTrigger.ts` serverless function
+- [ ] Update `runEngine.ts` to support `db_write` and `notify` step types
+- [ ] Push changes to GitHub

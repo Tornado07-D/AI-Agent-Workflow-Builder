@@ -123,10 +123,18 @@ export async function runEngine(runId: string) {
             : fieldValue === expectedValue;
         output = { passed, field, actual: fieldValue ?? null, expected: expectedValue ?? null };
       } else if (step.type === 'db_write') {
-        // The schema has no arbitrary user-data table. Keep the requested data
-        // durably in this step's output rather than accepting unsafe table SQL.
+        await runQuery(`
+          mutation WriteAppData($org_id: uuid!, $run_id: uuid!, $data: jsonb!) {
+            insert_app_data_one(object: { org_id: $org_id, workflow_run_id: $run_id, data: $data }) { id }
+          }
+        `, { org_id: run.org_id, run_id: run.id, data: previousOutput || {} });
         output = { written: true, data: previousOutput };
       } else if (step.type === 'notify') {
+        await runQuery(`
+          mutation SendNotification($org_id: uuid!, $channel: String!, $message: String!) {
+            insert_notifications_one(object: { org_id: $org_id, channel: $channel, message: $message }) { id }
+          }
+        `, { org_id: run.org_id, channel: String(step.config.channel || 'slack'), message: String(step.config.message || 'Workflow notification') });
         output = { notified: true, message: step.config.message ?? null };
       }
     } catch (reason) {
