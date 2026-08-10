@@ -52,7 +52,12 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
       });
       
       clearTimeout(timeout);
-      if (!res.ok) throw new Error("Gemini API error: " + res.status);
+      if (!res.ok) {
+        if (res.status === 400 || res.status === 403) {
+          throw new Error(`Gemini API key error (${res.status}). Please check your GEMINI_API_KEY.`);
+        }
+        throw new Error("Gemini API error: " + res.status);
+      }
       
       const data = await res.json();
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
@@ -65,8 +70,8 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
       }
       
       return { response: text, ...structuredOutput };
-    } catch(err) {
-      if (attempt >= 3) throw err;
+    } catch(err: any) {
+      if (attempt >= 3 || err.message?.includes('API key error')) throw err;
       await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
     }
   }
