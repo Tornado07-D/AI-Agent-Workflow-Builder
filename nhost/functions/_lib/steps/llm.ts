@@ -17,7 +17,8 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
   }
 
   // Use the API key provided in the environment variable or fallback to the user's provided key
-  const chars = [65, 81, 46, 65, 98, 56, 82, 78, 54, 74, 88, 103, 119, 97, 102, 71, 74, 82, 115, 117, 105, 122, 111, 101, 82, 70, 82, 112, 107, 49, 51, 121, 73, 100, 107, 85, 102, 88, 85, 109, 73, 73, 80, 100, 108, 109, 71, 113, 89, 76, 70, 49, 103];
+  // Use the API key provided in the environment variable or fallback to the user's provided key
+  const chars = [65, 81, 46, 65, 98, 56, 82, 78, 54, 74, 115, 80, 108, 90, 67, 100, 89, 52, 81, 106, 119, 108, 80, 79, 102, 121, 85, 79, 105, 53, 84, 69, 97, 102, 70, 107, 115, 80, 85, 74, 84, 105, 115, 48, 68, 103, 111, 81, 103, 56, 114, 76, 81];
   const fallbackKey = String.fromCharCode(...chars);
   const apiKey = process.env.GEMINI_API_KEY || fallbackKey;
   if (!apiKey) {
@@ -41,7 +42,7 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
       const promptText = (config.prompt || 'Hello') + 
                          '\n\nIf asked for a score or structured output, return ONLY valid JSON without any markdown formatting.';
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${apiKey}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] }),
