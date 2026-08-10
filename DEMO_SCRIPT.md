@@ -39,15 +39,11 @@ Follow this step-by-step script for your video recording to perfectly demonstrat
 3. The run will finish and the status will turn green (**COMPLETED**).
 
 ### 5. Trigger via Webhook (No Button Click)
-1. Open a terminal or Command Prompt window next to your browser.
-2. Run this curl command to hit your deployed webhook endpoint (replace `<YOUR_VERCEL_URL>` with your actual URL, or use localhost if running locally):
-   ```bash
-   curl -X POST https://<YOUR_VERCEL_URL>/v1/functions/_lib/webhook \
-     -H "Content-Type: application/json" \
-     -d '{"token": "secret-token-123"}'
-   ```
-   *(Note: The webhook uses the secret token `secret-token-123` hardcoded in your seed data).*
-3. Instantly look back at your browser. The UI will catch the new run streaming in automatically without you touching the mouse!
+1. Under the "Workflow Definition" section, look at the **webhook** trigger you added.
+2. You will see a purple **Copy Webhook Command** button next to it. Click it (this copies the exact `curl` command with your live Nhost URL and your Workflow's unique ID to your clipboard).
+3. Open a terminal or Command Prompt window next to your browser.
+4. Paste the copied command and hit Enter.
+5. Instantly look back at your browser. The UI will catch the new run streaming in automatically without you touching the mouse!
 
 ### 6. The Org B Security Proof (The Mic Drop)
 1. Click **Sign out** in the top right.
