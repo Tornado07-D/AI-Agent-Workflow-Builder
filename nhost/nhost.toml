@@ -32,6 +32,9 @@ httpPoolSize = 100
 [functions.node]
 version = 22
 
+[functions.env]
+GEMINI_API_KEY = '{{ secrets.GEMINI_API_KEY }}'
+
 [auth]
 version = '0.49.1'
 
