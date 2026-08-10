@@ -1,23 +1,23 @@
-# Architecture & Schema Reasoning
+# AI Agent Workflow Builder Write-up
 
-## The Single Source of Truth
-The hardest technical requirement is ensuring that the run engine survives cold starts. If an execution hits an `approval_gate`, we cannot afford to leave a Node.js process spinning or hold state in a promise chain. 
+## Schema Reasoning
+Our database schema is highly normalized and designed around multi-tenancy and granular execution tracking.
+- **Organizations & Users**: The `organizations`, `users`, and `organization_members` tables form the foundation of our multi-tenant architecture. Every workflow and run belongs to an organization, not an individual user.
+- **Workflows**: The `workflows` table stores the core definition (triggers and sequential steps) as JSONB. This allows infinite flexibility in defining step configurations without needing schema migrations.
+- **Execution Tracking**: When a workflow runs, a `workflow_runs` record is created. As the engine evaluates the workflow, it spawns `step_runs` records for each individual step. This separation allows us to track the exact state, latency, and output of every single node in the graph, making it possible to pause, resume, and debug specific steps in real-time.
 
-**Solution**: The `step_runs` table is the sole source of truth. When the engine encounters an `approval_gate`, it executes an atomic `UPDATE` to change the `workflow_runs` status to `paused`, and immediately returns (terminating the lambda). 
-When `approveStep` is invoked, it updates the DB status to `succeeded` and restarts the engine on the *exact same* run ID. The engine reads the `step_runs` array, bypasses the succeeded steps by merely hydrating `previousOutput = stepRun.output`, and seamlessly resumes the pending steps. This is mathematically pure and handles crashes inherently.
+## Two Permission Layers
+Security in this application is enforced through a dual-layer approach to ensure both client-side and system-level safety:
 
-## Two Distinct Permission Layers
+1. **Hasura Row-Level Security (Database Layer)**
+   Client applications (like the Next.js frontend) communicate directly with the Hasura GraphQL API. Hasura enforces strict Row-Level Security (RLS) policies based on the JWT token. When a user queries workflows, Hasura automatically injects `x-hasura-user-id` and `x-hasura-org-id` session variables. The RLS policies ensure that the user can *only* read and modify data that belongs to the organization they are a member of. 
 
-**Layer 1: Hasura Row-Level Security**
-Hasura enforces structural tenant isolation at the GraphQL to SQL compilation step. 
-By embedding `{ "org": { "members": { "user_id": { "_eq": "X-Hasura-User-Id" } } } }` globally, the application code doesn't have to remember to append `WHERE org_id = ?`. If a user from Org B guesses a workflow ID belonging to Org A, the database itself filters the row out, returning an empty array. A compromised frontend cannot bypass this.
+2. **Serverless Functions (Application Logic Layer)**
+   Our Nhost Serverless Functions (like the execution engine) perform system-level tasks and interact with the database using the `HASURA_GRAPHQL_ADMIN_SECRET`, which completely bypasses RLS. To maintain security, these functions manually enforce permissions in the application code. For example, before resuming a paused workflow, the `/approveStep` function verifies the incoming JWT, looks up the user's organization, and verifies that the user is authorized to approve steps for that specific workflow run. Similarly, webhook triggers validate a pre-shared secret token before initiating a run.
 
-**Layer 2: Business Logic Gating**
-Hasura cannot natively differentiate mid-execution runtime states cleanly (e.g., "Allow approval only if the step is awaiting_approval AND the user is an owner of the org tied to the workflow run"). 
-We enforce these dynamic rules in our Nhost Functions (for `approveStep`) and via Postgres `BEFORE INSERT/UPDATE` triggers (for restricting non-owners from creating `db_write` or `notify` steps). This ensures that even if a malicious user bypasses the frontend UI and hits the GraphQL API directly, the Postgres trigger will intercept the mutation and throw an error.
+## Approval-Gate Pause and Resume
+The approval gate is implemented as an asynchronous interruption in the execution loop:
 
-## Database Design Choices
-- **UUIDs everywhere**: Prevents sequential ID guessing attacks, directly proving our isolation models.
-- **Enums**: Hardcoded inside Postgres. No bad data can corrupt the run engine state.
-- **JSONB config/output**: Ensures that if we introduce a new step type tomorrow, the schema does not need a migration. The engine simply passes the `output` JSON to the next step's evaluator.
-- **Atomic Quota Check**: Done via a Hasura `_inc` mutation during the LLM step execution. Fetching-then-updating creates a race condition on high concurrency. The `_inc` guarantees atomic database locks.
+1. **Pause**: When the `runEngine` encounters an `approval_gate` step, it inserts a `step_run` record into the database with its status set to `paused`. The engine then intentionally terminates execution, leaving the `workflow_run` in a `running` state.
+2. **Client Polling**: The frontend subscribes to real-time updates. When it sees a `step_run` in the `paused` state, it halts the UI execution stream and renders an "Approve" button.
+3. **Resume**: When a human clicks "Approve", the frontend sends an HTTP request to the `/approveStep` serverless function. This function marks the paused `step_run` as `succeeded`. It then acts as a trampoline, making an internal HTTP call back to the main `/triggerWorkflowRun` endpoint. The engine boots back up, queries the database to find the last completed step, and seamlessly resumes execution at the very next step.
