@@ -8,8 +8,8 @@ import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSo
 import { CSS } from '@dnd-kit/utilities';
 import { nhost } from '../lib/nhost';
 
-const GET_ORG_WORKFLOWS = gql`
-  query GetOrgWorkflows($org_id: uuid!) {
+const SUBSCRIBE_ORG_WORKFLOWS = gql`
+  subscription SubscribeOrgWorkflows($org_id: uuid!) {
     organizations_by_pk(id: $org_id) {
       id name quota_calls_used quota_calls_allowed
       workflows(order_by: { created_at: desc }) {
@@ -78,12 +78,12 @@ const WATCH_STEP_RUNS = gql`
 `;
 
 export function WorkflowBuilder({ org }: { org: any }) {
-  const { data, loading, refetch } = useQuery(GET_ORG_WORKFLOWS, { 
+  const { data, loading } = useSubscription(SUBSCRIBE_ORG_WORKFLOWS, { 
     variables: { org_id: org?.id }, 
     skip: !org?.id,
-    fetchPolicy: 'network-only',
-    errorPolicy: 'ignore' // Prevents unhandled promise rejections on Apollo store resets
+    fetchPolicy: 'network-only'
   });
+  const refetch = () => {}; // Dummy refetch for existing code
   const [saveWf] = useMutation(SAVE_WORKFLOW);
   const [createWf] = useMutation(CREATE_WORKFLOW);
   const [deleteWf] = useMutation(DELETE_WORKFLOW);
