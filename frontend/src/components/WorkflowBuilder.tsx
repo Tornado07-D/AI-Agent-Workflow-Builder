@@ -47,6 +47,12 @@ const CREATE_WORKFLOW = gql`
   }
 `;
 
+const DELETE_WORKFLOW = gql`
+  mutation DeleteWorkflow($id: uuid!) {
+    delete_workflows_by_pk(id: $id) { id }
+  }
+`;
+
 const TRIGGER_RUN = gql`
   mutation TriggerRun($workflow_id: uuid!) {
     triggerWorkflowRun(workflow_id: $workflow_id) { run_id }
@@ -79,6 +85,7 @@ export function WorkflowBuilder({ org }: { org: any }) {
   });
   const [saveWf] = useMutation(SAVE_WORKFLOW);
   const [createWf] = useMutation(CREATE_WORKFLOW);
+  const [deleteWf] = useMutation(DELETE_WORKFLOW);
   const [triggerRun] = useMutation(TRIGGER_RUN);
   
   const organization = data?.organizations_by_pk;
@@ -223,6 +230,17 @@ export function WorkflowBuilder({ org }: { org: any }) {
     }
   };
 
+  const handleDelete = async () => {
+    if (!confirm("Are you sure you want to delete this workflow? This cannot be undone.")) return;
+    try {
+      await deleteWf({ variables: { id: selectedWf.id } });
+      setSelectedWfId(null);
+      refetch();
+    } catch (e: any) {
+      alert("Error deleting workflow: " + e.message);
+    }
+  };
+
   const runInfo = selectedWf?.runs?.[0];
 
   const handleRun = async () => {
@@ -292,9 +310,14 @@ export function WorkflowBuilder({ org }: { org: any }) {
                 {org.role !== 'viewer' && (
                   <>
                     {!isEditing ? (
-                      <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded font-semibold transition-colors">
-                        <Edit2 size={16} /> Edit
-                      </button>
+                      <>
+                        <button onClick={handleDelete} className="flex items-center gap-2 bg-red-900/50 hover:bg-red-800/60 text-red-300 border border-red-800/50 px-3 py-2 rounded text-sm font-semibold transition-colors">
+                          <Trash size={16} /> Delete
+                        </button>
+                        <button onClick={() => setIsEditing(true)} className="flex items-center gap-2 bg-slate-700 hover:bg-slate-600 px-4 py-2 rounded text-sm font-semibold transition-colors">
+                          <Edit2 size={16} /> Edit
+                        </button>
+                      </>
                     ) : (
                       <button onClick={handleSave} className="flex items-center gap-2 bg-blue-600 hover:bg-blue-500 px-4 py-2 rounded font-semibold transition-colors">
                         <Save size={16} /> Save Changes

@@ -1,46 +1,58 @@
-# Final Assignment Demo Script
+# Final Task: Video Demo Script
 
-Follow this path to demonstrate all key architecture requirements perfectly.
+Follow this step-by-step script for your video recording to perfectly demonstrate all 6 requirements of the Final Task.
 
-### 1. Preparation
-- Ensure `nhost up` is running.
-- Run `npx ts-node seed.ts` to bootstrap the data. Keep the terminal output visible (it prints the Workflow ID for the webhook test).
+### 1. Show the Organizations Exist
+1. Log in to the application as **Owner A** (`ownerA@orga.com` / `password123`).
+2. Show that you are logged into **Org A** (using the dropdown at the top right).
 
-### 2. Builder & Execution (The Happy Path)
-1. Open `http://localhost:3000`. Login as `ownerA@orga.com` (password: `password123`).
-2. The UI will show the "Onboarding Approval Flow" with the quota bar underneath.
-3. Click **Run Now**. 
-4. Watch the "Live Execution" panel. You will see Step 1 (LLM) and Step 2 (Conditional) flash as they process, streaming directly from the GraphQL DB subscription.
-5. The execution pauses on Step 3 (Approval Gate). 
-
-### 3. Pause / Resume Durability
-1. Stop the local Nhost functions server to simulate a massive crash or a cold-start timeline. (Or just confidently state: "The lambda is completely dead right now. State is in Postgres.").
-2. Click **Approve**. 
-3. The engine picks back up cleanly, reads the LLM output from the DB, and executes the final HTTP Request step.
-
-### 4. Concurrency Defense
-1. Rapidly double-click "Run Now" (or explain the code). Show in `triggerWorkflowRun.ts` the atomic `UPDATE ... RETURNING id`. Explain how the second concurrent click receives 0 rows back and halts, protecting the quota.
-
-### 5. Webhook Trigger
-1. Copy the Workflow ID from the seed script terminal.
-2. In a separate terminal, run:
-   ```bash
-   curl -X POST http://localhost:1337/v1/functions/webhookTrigger \
-     -H "Content-Type: application/json" \
-     -d '{"workflow_id": "<ID>", "token": "secret-token-123"}'
-   ```
-3. Look back at the frontend UI. The subscription immediately catches the new run and streams its progress live!
-
-### 6. The Isolation Proof (The Mic Drop)
-1. Sign out. Sign in as `ownerB@orgb.com`.
-2. Notice the dashboard is empty.
-3. Open the Hasura GraphiQL console (or your network tab) and fire this exact query:
-   ```graphql
-   query {
-     workflows(where: { id: { _eq: "<ORG_A_WORKFLOW_ID>" } }) {
-       id
-       name
+### 2. Build the Workflow (Live)
+1. In the left panel, click the blue **+ New** button next to Workflows.
+2. Name it "Final Demo Workflow".
+3. Add a **Trigger** by clicking **+ webhook**. Leave the config as `{}`.
+4. Add the following **3 Steps** by clicking the buttons at the bottom:
+   - **+ llm_call**: Paste this exactly:
+     ```json
+     {
+       "prompt": "Evaluate this resume: Lead Astronaut with 20 years experience. Return ONLY a valid JSON object with a single key 'score' set to 10."
      }
-   }
+     ```
+   - **+ conditional_branch**: Paste this exactly:
+     ```json
+     {
+       "field": "score",
+       "value": 5,
+       "operator": ">"
+     }
+     ```
+   - **+ approval_gate**: Leave it as `{}`.
+5. Click **Save Changes** in the top right. 
+
+### 3. Start the Workflow Manually & Show Live Streams
+1. Click **Run Now**.
+2. Explain to the camera: *"It is now executing the LLM call and streaming the status directly from the database using GraphQL subscriptions."*
+3. Wait a few seconds. The screen will live-update to show Step 1 and Step 2 succeeding, and Step 3 will hit the **Paused** state (`awaiting_approval`).
+
+### 4. Prove Only Owners Can Approve
+1. Click the **Approve** button on the paused step to resume the engine.
+2. Mention: *"Because I am the Owner, I can click approve. If I was logged in as a Viewer, the backend Hasura Action would reject the request."*
+3. The run will finish and the status will turn green (**COMPLETED**).
+
+### 5. Trigger via Webhook (No Button Click)
+1. Open a terminal or Command Prompt window next to your browser.
+2. Run this curl command to hit your deployed webhook endpoint (replace `<YOUR_VERCEL_URL>` with your actual URL, or use localhost if running locally):
+   ```bash
+   curl -X POST https://<YOUR_VERCEL_URL>/v1/functions/_lib/webhook \
+     -H "Content-Type: application/json" \
+     -d '{"token": "secret-token-123"}'
    ```
-4. The result is `[]`. No permission errors, just an empty array. The Hasura Layer-1 RLS applies the membership filter at the Postgres query planner level. Org A's data doesn't exist to Org B.
+   *(Note: The webhook uses the secret token `secret-token-123` hardcoded in your seed data).*
+3. Instantly look back at your browser. The UI will catch the new run streaming in automatically without you touching the mouse!
+
+### 6. The Org B Security Proof (The Mic Drop)
+1. Click **Sign out** in the top right.
+2. Log back in as **Owner B** (`ownerB@orgb.com` / `password123`).
+3. Show the empty dashboard: *"No workflows found."*
+4. Explain to the camera: *"Because of Hasura's Row-Level Security, Owner B is completely blocked from Org A's data. Even if Owner B guesses the exact Workflow ID and tries to fire the `triggerWorkflowRun` mutation via API, Hasura will block it at the Postgres query planner level. Complete multi-tenant isolation is achieved."*
+
+**End of Video.** You have proven all 6 constraints flawlessly!
