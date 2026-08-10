@@ -25,57 +25,48 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
     throw new Error("GEMINI_API_KEY is not set in environment variables");
   }
 
-  // Real Gemini call with retry, timeout, and durable attempt accounting.
-  let attempt = 0;
-  while(attempt < 3) {
-    try {
-      attempt++;
-      await runQuery(`
-        mutation IncrementAttempt($id: uuid!) {
-          update_step_runs_by_pk(pk_columns: {id: $id}, _inc: {attempt_count: 1}) { id }
-        }
-      `, { id: stepRun.id });
-
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 8_000); // 8s to beat Nhost's 10s kill switch
-      
-      const promptText = (config.prompt || 'Hello') + 
-                         '\n\nIf asked for a score or structured output, return ONLY valid JSON without any markdown formatting.';
-
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: { maxOutputTokens: 500 } // Keep responses short so it doesn't timeout
-        }),
-        signal: controller.signal
-      });
-      clearTimeout(timeout);
-
-      if (!res.ok) {
-        if (res.status >= 400 && res.status < 500) {
-          // Fatal client error (e.g. invalid API key). Do not retry.
-          const errorText = await res.text();
-          throw new Error(`FATAL_ERROR: Gemini API rejected request (${res.status}): ${errorText}`);
-        }
-        throw new Error(`Gemini API error: ${res.statusText}`);
-      }
-      
-      const data = await res.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      
-      // Attempt to extract JSON from the text response
-      const jsonMatch = text.match(/\{[\s\S]*\}/);
-      let structuredOutput = {};
-      if (jsonMatch) {
-        try { structuredOutput = JSON.parse(jsonMatch[0]); } catch { /* retain text-only output */ }
-      }
-      
-      return { response: text, ...structuredOutput };
-    } catch(err: any) {
-      if (attempt >= 3 || err.message?.includes('FATAL_ERROR') || err.message?.includes('API key error')) throw err;
-      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+  // Real Gemini call with timeout and durable attempt accounting.
+  await runQuery(`
+    mutation IncrementAttempt($id: uuid!) {
+      update_step_runs_by_pk(pk_columns: {id: $id}, _inc: {attempt_count: 1}) { id }
     }
+  `, { id: stepRun.id });
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8_000); // 8s to beat Nhost's 10s kill switch
+  
+  const promptText = (config.prompt || 'Hello') + 
+                     '\n\nIf asked for a score or structured output, return ONLY valid JSON without any markdown formatting.';
+
+  try {
+    const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        contents: [{ parts: [{ text: promptText }] }],
+        generationConfig: { maxOutputTokens: 500 }
+      }),
+      signal: controller.signal
+    });
+    clearTimeout(timeout);
+
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Gemini API error (${res.status}): ${errorText}`);
+    }
+    
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+    
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    let structuredOutput = {};
+    if (jsonMatch) {
+      try { structuredOutput = JSON.parse(jsonMatch[0]); } catch { /* retain text-only output */ }
+    }
+    
+    return { response: text, ...structuredOutput };
+  } catch(err: any) {
+    clearTimeout(timeout);
+    throw err;
   }
 }
