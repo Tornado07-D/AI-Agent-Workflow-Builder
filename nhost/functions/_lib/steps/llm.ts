@@ -16,8 +16,11 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
     throw new Error("Quota exceeded");
   }
 
-  // Hardcoded and split to bypass GitHub Push Protection for this demo
-  const apiKey = "AQ.Ab8RN6JGLuZt" + "CTbAB6zED0mf9CWXo1fiCFtbDaULk7Aubrfudw";
+  // Use the API key provided in the environment variable
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is not set in environment variables");
+  }
 
   // Real Gemini call with retry, timeout, and durable attempt accounting.
   let attempt = 0;
