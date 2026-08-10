@@ -42,7 +42,7 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
       const promptText = (config.prompt || 'Hello') + 
                          '\n\nIf asked for a score or structured output, return ONLY valid JSON without any markdown formatting.';
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash:generateContent?key=${apiKey}`, {
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] }),
