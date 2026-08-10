@@ -420,9 +420,9 @@ export function WorkflowBuilder({ org }: { org: any }) {
                                    <button 
                                      onClick={() => {
                                        const token = trigger.config.token || 'secret-token-123';
-                                       const curl = `curl -X POST ${nhost.functions.url}/webhookTrigger -H "Content-Type: application/json" -d '{"workflow_id": "${selectedWf.id}", "token": "${token}"}'`;
+                                       const curl = `curl -X POST ${nhost.functions.url}/webhookTrigger -H "Content-Type: application/json" -d "{\\"workflow_id\\": \\"${selectedWf.id}\\", \\"token\\": \\"${token}\\"}"`;
                                        navigator.clipboard.writeText(curl);
-                                       alert('Copied curl command to clipboard!');
+                                       alert('Copied curl command to clipboard! (Windows compatible)');
                                      }}
                                      className="ml-auto text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 px-2 py-1 rounded transition-colors"
                                    >
