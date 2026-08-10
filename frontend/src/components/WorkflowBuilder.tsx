@@ -80,6 +80,7 @@ export function WorkflowBuilder({ org }: { org: any }) {
   const [selectedWfId, setSelectedWfId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editingSteps, setEditingSteps] = useState<any[]>([]);
+  const [editingTriggers, setEditingTriggers] = useState<any[]>([]);
   
   const selectedWf = workflows.find((w: any) => w.id === selectedWfId) || null;
 
@@ -97,6 +98,11 @@ export function WorkflowBuilder({ org }: { org: any }) {
         id: s.id || `temp-${idx}`,
         // ensure config is an object
         config: typeof s.config === 'string' ? JSON.parse(s.config) : s.config
+      })));
+      setEditingTriggers(selectedWf.triggers.map((t: any, idx: number) => ({
+        ...t,
+        id: t.id || `temp-trigger-${idx}`,
+        config: typeof t.config === 'string' ? JSON.parse(t.config) : t.config
       })));
     }
   }, [selectedWf, isEditing]);
@@ -139,6 +145,28 @@ export function WorkflowBuilder({ org }: { org: any }) {
     }
   };
 
+  const handleAddTrigger = (type: string) => {
+    const newTrigger = {
+      id: `new-trigger-${Date.now()}`,
+      type,
+      config: {},
+    };
+    setEditingTriggers([...editingTriggers, newTrigger]);
+  };
+
+  const handleRemoveTrigger = (id: string) => {
+    setEditingTriggers(editingTriggers.filter(t => t.id !== id));
+  };
+
+  const handleUpdateTriggerConfig = (id: string, newConfigStr: string) => {
+    try {
+      const parsed = JSON.parse(newConfigStr);
+      setEditingTriggers(editingTriggers.map(t => t.id === id ? { ...t, config: parsed } : t));
+    } catch (e) {
+      // Invalid JSON
+    }
+  };
+
   const handleSave = async () => {
     try {
       // Reassign step_order based on array index
@@ -149,8 +177,8 @@ export function WorkflowBuilder({ org }: { org: any }) {
         config: s.config
       }));
 
-      // Assuming triggers haven't changed in this UI, we just rewrite them as is
-      const triggersToSave = selectedWf.triggers.map((t: any) => ({
+      // Use editingTriggers
+      const triggersToSave = editingTriggers.map((t: any) => ({
         workflow_id: selectedWf.id,
         type: t.type,
         config: t.config
@@ -253,11 +281,47 @@ export function WorkflowBuilder({ org }: { org: any }) {
             <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
                <div className="bg-slate-950 rounded-lg p-5 border border-slate-800 overflow-auto flex flex-col">
                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="font-bold text-slate-200">Steps Definition</h3>
+                    <h3 className="font-bold text-slate-200">Workflow Definition</h3>
                  </div>
                  
                  {isEditing ? (
                    <div className="flex-1 flex flex-col gap-4">
+                      <div>
+                        <h4 className="text-xs font-semibold text-slate-400 mb-2 uppercase">Triggers</h4>
+                        <div className="space-y-2 mb-2">
+                          {editingTriggers.map(trigger => (
+                            <div key={trigger.id} className="bg-slate-900 p-2 rounded border border-slate-700 flex flex-col gap-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-xs font-semibold text-purple-400">{trigger.type}</span>
+                                <button onClick={() => handleRemoveTrigger(trigger.id)} className="text-slate-500 hover:text-red-400">
+                                  <Trash size={12} />
+                                </button>
+                              </div>
+                              <textarea
+                                defaultValue={JSON.stringify(trigger.config, null, 2)}
+                                onChange={(e) => handleUpdateTriggerConfig(trigger.id, e.target.value)}
+                                className="w-full h-16 bg-slate-950 text-slate-300 text-xs p-2 rounded border border-slate-800 focus:border-purple-500 outline-none font-mono resize-y"
+                                placeholder="{}"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          {['webhook', 'schedule', 'event'].map(type => (
+                            <button 
+                              key={type}
+                              onClick={() => handleAddTrigger(type)}
+                              className="flex items-center gap-1 bg-slate-700 hover:bg-slate-600 text-xs px-2 py-1 rounded text-purple-200"
+                            >
+                              <Plus size={12} /> {type}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <hr className="border-slate-800" />
+                      
+                      <h4 className="text-xs font-semibold text-slate-400 uppercase">Steps</h4>
                       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                         <SortableContext items={editingSteps.map(s => s.id)} strategy={verticalListSortingStrategy}>
                           <div className="space-y-3 flex-1 overflow-auto pr-2">
@@ -291,6 +355,23 @@ export function WorkflowBuilder({ org }: { org: any }) {
                    </div>
                  ) : (
                    <div className="space-y-4 flex-1 overflow-auto">
+                     {selectedWf.triggers.length > 0 && (
+                       <div className="mb-4">
+                         <h4 className="text-xs font-semibold text-slate-400 mb-2 uppercase">Triggers</h4>
+                         {selectedWf.triggers.map((trigger: any, idx: number) => (
+                           <div key={trigger.id || idx} className="bg-slate-900 p-3 rounded border border-slate-700 relative mb-2">
+                              <div className="flex items-center gap-2 font-semibold text-purple-400 mb-2">
+                                 {trigger.type}
+                              </div>
+                              <pre className="text-xs text-slate-400 overflow-x-auto p-2 bg-slate-950 rounded">
+                                 {JSON.stringify(trigger.config, null, 2)}
+                              </pre>
+                           </div>
+                         ))}
+                       </div>
+                     )}
+                     
+                     <h4 className="text-xs font-semibold text-slate-400 mb-2 uppercase">Steps</h4>
                      {selectedWf.steps.map((step: any, idx: number) => (
                        <div key={step.id || idx} className="bg-slate-900 p-3 rounded border border-slate-700 relative">
                           <div className="flex items-center gap-2 font-semibold text-cyan-400 mb-2">

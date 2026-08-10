@@ -4,12 +4,18 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 // Requires: npm install @nhost/nhost-js node-fetch
 // Run: npx ts-node seed.ts
 
+const subdomain = process.env.NHOST_SUBDOMAIN || 'local';
+const region = process.env.NHOST_REGION || '';
+const ADMIN_SECRET = process.env.HASURA_GRAPHQL_ADMIN_SECRET || 'nhost-admin-secret';
+
 const nhost = createNhostClient({
-  subdomain: 'local'
+  subdomain,
+  region: region || undefined
 });
 
-const GRAPHQL_URL = 'https://local.graphql.local.nhost.run/v1';
-const ADMIN_SECRET = 'nhost-admin-secret';
+const GRAPHQL_URL = subdomain === 'local' 
+  ? 'https://local.graphql.local.nhost.run/v1' 
+  : `https://${subdomain}.graphql.${region}.nhost.run/v1`;
 
 async function runQuery(query: string, variables: any = {}) {
   const res = await fetch(GRAPHQL_URL, {
