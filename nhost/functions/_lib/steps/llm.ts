@@ -37,7 +37,7 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
       `, { id: stepRun.id });
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 20_000);
+      const timeout = setTimeout(() => controller.abort(), 8_000); // 8s to beat Nhost's 10s kill switch
       
       const promptText = (config.prompt || 'Hello') + 
                          '\n\nIf asked for a score or structured output, return ONLY valid JSON without any markdown formatting.';
@@ -45,7 +45,10 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
       const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${apiKey}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] }),
+        body: JSON.stringify({ 
+          contents: [{ parts: [{ text: promptText }] }],
+          generationConfig: { maxOutputTokens: 500 } // Keep responses short so it doesn't timeout
+        }),
         signal: controller.signal
       });
       clearTimeout(timeout);
