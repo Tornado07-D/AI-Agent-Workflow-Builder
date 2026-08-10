@@ -6,6 +6,7 @@ import { Plus, Play, Pause, Save, CheckCircle, XCircle, Clock, Trash, GripVertic
 import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { nhost } from '../lib/nhost';
 
 const GET_ORG_WORKFLOWS = gql`
   query GetOrgWorkflows($org_id: uuid!) {
@@ -415,6 +416,19 @@ export function WorkflowBuilder({ org }: { org: any }) {
                            <div key={trigger.id || idx} className="bg-slate-900 p-3 rounded border border-slate-700 relative mb-2">
                               <div className="flex items-center gap-2 font-semibold text-purple-400 mb-2">
                                  {trigger.type}
+                                 {trigger.type === 'webhook' && (
+                                   <button 
+                                     onClick={() => {
+                                       const token = trigger.config.token || 'secret-token-123';
+                                       const curl = `curl -X POST ${nhost.functions.url}/webhookTrigger -H "Content-Type: application/json" -d '{"workflow_id": "${selectedWf.id}", "token": "${token}"}'`;
+                                       navigator.clipboard.writeText(curl);
+                                       alert('Copied curl command to clipboard!');
+                                     }}
+                                     className="ml-auto text-xs bg-purple-900/50 hover:bg-purple-800 text-purple-200 px-2 py-1 rounded transition-colors"
+                                   >
+                                     Copy Webhook Command
+                                   </button>
+                                 )}
                               </div>
                               <pre className="text-xs text-slate-400 overflow-x-auto p-2 bg-slate-950 rounded">
                                  {JSON.stringify(trigger.config, null, 2)}
