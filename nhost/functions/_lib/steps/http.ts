@@ -2,6 +2,8 @@ import { runQuery } from '../db';
 
 export async function executeHttpStep(config: any, org_id: string, stepRun: any) {
   const url = config.url;
+  if (!url) throw new Error("HTTP step failed: No URL provided in config.");
+
   const method = config.method || 'GET';
   
   let attempt = 0;
@@ -15,7 +17,7 @@ export async function executeHttpStep(config: any, org_id: string, stepRun: any)
         }
       `, { id: stepRun.id });
       const controller = new AbortController();
-      timeout = setTimeout(() => controller.abort(), 10000);
+      timeout = setTimeout(() => controller.abort(), 8000); // 8s to leave time for db write
       
       const res = await fetch(url, {
         method,
@@ -33,7 +35,7 @@ export async function executeHttpStep(config: any, org_id: string, stepRun: any)
       }
     } catch(err) {
       if (attempt >= 3) throw err;
-      await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+      await new Promise(r => setTimeout(r, 1000)); // Fixed 1s backoff to avoid lambda 10s kill limit
     } finally {
       if (timeout) clearTimeout(timeout);
     }
