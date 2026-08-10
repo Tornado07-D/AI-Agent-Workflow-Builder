@@ -33,7 +33,7 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
   `, { id: stepRun.id });
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 4_000); // 4s timeout to avoid 10s lambda limit during cold starts
+  const timeout = setTimeout(() => controller.abort(), 6_000); // 6s timeout to avoid 10s lambda limit during cold starts
   
   const promptText = (config.prompt || 'Hello') + 
                      '\n\nIf asked for a score or structured output, return ONLY valid JSON without any markdown formatting.';
