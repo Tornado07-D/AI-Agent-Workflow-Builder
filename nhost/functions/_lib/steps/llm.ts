@@ -41,24 +41,21 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
       const promptText = (config.prompt || 'Hello') + 
                          '\n\nIf asked for a score or structured output, return ONLY valid JSON without any markdown formatting.';
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${apiKey}`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: promptText }] }],
-          generationConfig: { temperature: 0.2 }
-        }),
+      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ contents: [{ parts: [{ text: promptText }] }] }),
         signal: controller.signal
       });
-      
       clearTimeout(timeout);
+
       if (!res.ok) {
-        if (res.status === 400 || res.status === 403) {
-          throw new Error(`Gemini API key error (${res.status}). Please check your GEMINI_API_KEY.`);
+        if (res.status >= 400 && res.status < 500) {
+          // Fatal client error (e.g. invalid API key). Do not retry.
+          const errorText = await res.text();
+          throw new Error(`FATAL_ERROR: Gemini API rejected request (${res.status}): ${errorText}`);
         }
-        throw new Error("Gemini API error: " + res.status);
+        throw new Error(`Gemini API error: ${res.statusText}`);
       }
       
       const data = await res.json();
@@ -73,7 +70,7 @@ export async function executeLlmStep(config: any, org_id: string, stepRun: any) 
       
       return { response: text, ...structuredOutput };
     } catch(err: any) {
-      if (attempt >= 3 || err.message?.includes('API key error')) throw err;
+      if (attempt >= 3 || err.message?.includes('FATAL_ERROR') || err.message?.includes('API key error')) throw err;
       await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
     }
   }
